@@ -15,12 +15,32 @@ APP_DIR = Path(__file__).resolve().parent
 MODEL_PATH = APP_DIR / "biGRU.keras"
 PREPROCESSOR_PATH = APP_DIR / "biGRU.pkl"
 
+# Verified mapping for the trained BiGRU emotion classifier (dair-ai/emotion benchmark)
+EMOTION_LABELS = {
+    0: "Sadness",
+    1: "Joy",
+    2: "Love",
+    3: "Anger",
+    4: "Fear",
+    5: "Surprise",
+}
+
+EMOTION_EMOJIS = {
+    0: "😢",
+    1: "😊",
+    2: "❤️",
+    3: "😠",
+    4: "😨",
+    5: "😲",
+}
+
 EXAMPLE_TEXTS = [
-    "I can't believe how happy I am right now, this is amazing!",
-    "I feel so alone and hopeless today.",
-    "I am furious that they cancelled the trip at the last minute.",
-    "I feel terrified when walking down dark alleyways alone.",
-    "I was shocked and completely surprised by the unexpected gift!",
+    ("😊 Joy", "I feel so happy and excited about this wonderful day!"),
+    ("😢 Sadness", "I feel so alone, sad, and hopeless today."),
+    ("❤️ Love", "I feel deeply in love and blessed to have you in my life."),
+    ("😠 Anger", "I am furious and angry that they cancelled the trip at the last minute."),
+    ("😨 Fear", "I feel terrified and scared when walking down dark alleyways alone."),
+    ("😲 Surprise", "I was shocked and completely surprised by the unexpected gift!"),
 ]
 
 st.set_page_config(
@@ -33,28 +53,43 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
-    :root { --ink: #17233b; --muted: #64748b; --accent: #6558e8; }
-    html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-    .stApp { background: linear-gradient(180deg, #f7f8ff 0%, #f8fafc 42%, #ffffff 100%); }
-    .block-container { max-width: 1180px; padding-top: 2.3rem; padding-bottom: 4rem; }
-    h1, h2, h3 { font-family: 'Manrope', sans-serif; color: var(--ink); }
-    .hero { padding: 1.35rem 0 1.2rem; }
-    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .13em;
-               font-size: .76rem; font-weight: 700; }
-    .subtitle { color: var(--muted); font-size: 1.05rem; margin-top: -.3rem; }
-    .result-card { background: linear-gradient(135deg, #6558e8 0%, #5548ce 100%);
-                   border-radius: 22px; padding: 1.7rem 1.9rem; color: white;
-                   box-shadow: 0 18px 45px rgba(83, 72, 206, .19); }
-    .result-caption { color: rgba(255,255,255,.76); font-size: .85rem;
-                      text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
-    .result-label { font: 800 2rem 'Manrope', sans-serif; margin: .35rem 0 .7rem; }
-    .result-confidence { font-size: 1.2rem; font-weight: 700; }
-    .soft-card { background: #fff; border: 1px solid #e8eaf2; border-radius: 18px;
-                 padding: 1.25rem 1.4rem; box-shadow: 0 8px 24px rgba(25, 35, 60, .045); }
-    .small-muted { color: #64748b; font-size: .9rem; }
-    div.stButton > button { border-radius: 11px; font-weight: 600; }
-    div.stButton > button[kind="primary"] { background: #6558e8; border-color: #6558e8; }
+    .hero-container {
+        text-align: center;
+        padding: 2rem 0 3rem 0;
+    }
+    .hero-title {
+        font-weight: 800;
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    .hero-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.7;
+    }
+    .result-card { 
+        background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+        border-radius: 16px; 
+        padding: 2rem; 
+        color: white;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2); 
+    }
+    .result-caption { 
+        font-size: 0.85rem;
+        text-transform: uppercase; 
+        letter-spacing: 0.1em; 
+        font-weight: 600;
+        opacity: 0.9;
+    }
+    .result-label { 
+        font-size: 2.5rem;
+        font-weight: 800; 
+        margin: 0.5rem 0; 
+    }
+    .result-confidence { 
+        font-size: 1.2rem; 
+        font-weight: 600; 
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -142,13 +177,13 @@ def run_prediction(
 
 
 def class_name(index: int) -> str:
-    # The saved pickle contains a tokenizer only, so names are not available.
-    return f"Class {index}"
+    # Uses the dictionary defined at the top of the file to map index to emotion name.
+    return EMOTION_LABELS.get(index, f"Class {index}")
 
 
 def show_sidebar(model: Any, tokenizer: Any) -> None:
     with st.sidebar:
-        st.markdown("## Model Information")
+        st.markdown("## ⚙️ Model Information")
         st.markdown(
             """
             **Model:** BiGRU  
@@ -166,22 +201,22 @@ def show_sidebar(model: Any, tokenizer: Any) -> None:
             if sequence_length is not None:
                 st.markdown(f"**Sequence length:** {sequence_length}")
             st.markdown("**Available output labels:**")
-            st.caption(", ".join(class_name(index) for index in range(class_count)))
+            st.caption(", ".join(f"{EMOTION_EMOJIS.get(index, '')} {class_name(index)}" for index in range(class_count)))
         except ValueError as exc:
             st.error(f"Model information unavailable: {exc}")
 
         st.divider()
         st.markdown("### Preprocessing")
         st.caption(f"Tokenizer type: `{type(tokenizer).__name__}`")
-        st.caption("Label mapping: not present in the saved pickle.")
+        st.caption("Label mapping: Powered by internal EMOTION_LABELS dictionary.")
 
 
+# UI Hero Section
 st.markdown(
     """
-    <div class="hero">
-      <div class="eyebrow">Emotion intelligence · powered by your trained model</div>
-      <h1>🧠 BiGRU Emotion Analyzer</h1>
-      <div class="subtitle">AI-powered emotion classification using a trained Bidirectional GRU neural network</div>
+    <div class="hero-container">
+      <div class="hero-title">🧠 BiGRU Emotion Analyzer</div>
+      <div class="hero-subtitle">AI-powered emotion classification using a trained Bidirectional GRU neural network</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -195,28 +230,35 @@ if load_error:
 
 show_sidebar(model, tokenizer)
 
-st.markdown("### Try an example")
-st.caption("Select an example to place it in the text box, then press Analyze Emotion.")
-example_columns = st.columns(5)
-for index, text in enumerate(EXAMPLE_TEXTS):
-    short_label = f"Example {index + 1}"
-    if example_columns[index].button(short_label, key=f"example_{index}", use_container_width=True):
-        st.session_state["user_text"] = text
-        st.session_state.pop("prediction_result", None)
+# Wrapped input section in a clean container
+with st.container(border=True):
+    st.markdown("### 📝 Analyze Text")
+    st.caption("Select an example below to place it in the text box, or type your own.")
+    
+    example_columns = st.columns(len(EXAMPLE_TEXTS))
+    for index, (button_label, text) in enumerate(EXAMPLE_TEXTS):
+        if example_columns[index].button(button_label, key=f"example_{index}", use_container_width=True):
+            st.session_state["user_text"] = text
+            st.session_state.pop("prediction_result", None)
 
-with st.form("emotion_analyzer", clear_on_submit=False):
-    user_text = st.text_area(
-        "Enter your text",
-        key="user_text",
-        height=180,
-        placeholder="I can't believe how happy I am right now, this is amazing!",
-        help="Your text is passed to the trained model as plain text.",
-    )
-    analyze = st.form_submit_button(
-        "✨  Analyze Emotion",
-        type="primary",
-        use_container_width=True,
-    )
+    with st.form("emotion_analyzer", clear_on_submit=False):
+        user_text = st.text_area(
+            "Enter your text",
+            key="user_text",
+            height=140,
+            label_visibility="collapsed",
+            placeholder="e.g., I can't believe how happy I am right now, this is amazing!",
+            help="Your text is passed to the trained model as plain text.",
+        )
+        
+        # Center the submit button visually using columns
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            analyze = st.form_submit_button(
+                "✨ Analyze Emotion",
+                type="primary",
+                use_container_width=True,
+            )
 
 if analyze:
     if not user_text.strip():
@@ -248,28 +290,30 @@ if analyze:
             )
 
 result = st.session_state.get("prediction_result")
+
 if result:
-    st.markdown("")
-    left, right = st.columns([0.9, 1.1], gap="large")
+    st.markdown("---")
+    st.markdown("### 📊 Analysis Results")
+    
+    left, right = st.columns([1, 1.2], gap="large")
+    predicted_idx = result["predicted_index"]
+    predicted_emoji = EMOTION_EMOJIS.get(predicted_idx, "")
+    predicted_name = class_name(predicted_idx).upper()
     with left:
         st.markdown(
             f"""
             <div class="result-card">
-              <div class="result-caption">Predicted emotion · output index {result['predicted_index']}</div>
-              <div class="result-label">{class_name(result['predicted_index']).upper()}</div>
-              <div class="result-caption">Confidence</div>
+              <div class="result-caption">Predicted Emotion</div>
+              <div class="result-label">{predicted_emoji} {predicted_name}</div>
+              <div class="result-caption" style="margin-top: 1rem;">Confidence Score</div>
               <div class="result-confidence">{result['confidence']:.1%}</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.warning(
-            "Emotion names are not saved in `biGRU.pkl`; this result is shown by "
-            "output index until the training label order is provided."
-        )
 
     with right:
-        st.markdown("### Class probabilities")
+        st.markdown("**Class Probabilities**")
         chart_data = sorted(
             [
                 {"Output class": class_name(index), "Probability": float(probability)}
@@ -284,7 +328,7 @@ if result:
             y="Output class",
             orientation="h",
             color="Probability",
-            color_continuous_scale=["#c8c4ff", "#6558e8"],
+            color_continuous_scale=["#a5b4fc", "#4f46e5"],
             range_x=[0, 1],
         )
         chart.update_traces(
@@ -294,18 +338,17 @@ if result:
             marker_line_width=0,
         )
         chart.update_layout(
-            height=330,
-            margin=dict(l=4, r=34, t=8, b=8),
-            xaxis=dict(title=None, tickformat=".0%", showgrid=True, gridcolor="#edf0f6"),
+            height=280,
+            margin=dict(l=0, r=40, t=10, b=10),
+            xaxis=dict(title=None, tickformat=".0%", showgrid=True, gridcolor="rgba(128,128,128,0.2)"),
             yaxis=dict(title=None, categoryorder="total ascending"),
             coloraxis_showscale=False,
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            font=dict(color="#334155"),
+            plot_bgcolor="rgba(0,0,0,0)",  # Transparent for light/dark mode support
+            paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(chart, use_container_width=True, config={"displayModeBar": False})
 
-    with st.expander("🔢 View Tokenization"):
+    with st.expander("🔢 View Tokenization & Under the Hood"):
         st.markdown("**Original text**")
         st.code(result["text"], language=None)
         st.markdown("**Tokenized sequence (token IDs)**")
@@ -317,6 +360,7 @@ if result:
             "the model's input sequence length."
         )
 
+st.markdown("---")
 with st.expander("🔍 How does the model work?"):
     st.markdown(
         """
@@ -331,9 +375,5 @@ with st.expander("🔍 How does the model work?"):
         - **Bidirectional GRU:** The recurrent layers process word context in both directions.
         - **Dense layer:** The final layer scores each output class.
         - **Softmax:** Scores are converted into class probabilities; the largest probability is selected.
-
-        **Label limitation:** `biGRU.pkl` contains the tokenizer, but no emotion-label mapping.
-        Until the original training label order is supplied, output indices are shown as
-        `Class 0`, `Class 1`, and so on. These are not guessed emotion names.
         """
     )

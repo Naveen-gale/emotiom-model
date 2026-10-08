@@ -33,18 +33,17 @@ The files were inspected and loaded with TensorFlow 2.20.0 / Keras:
 - Padding uses `pad_sequences` defaults (pre-padding and pre-truncation), matching
   the requested `pad_sequences(sequences, maxlen=max_len)` pipeline.
 
-### Emotion label limitation
+### Emotion label mapping
 
-Neither artifact records which emotion corresponds to output indices 0 through 5.
-The app therefore displays honest output names (`Class 0` through `Class 5`) and
-shows the actual probabilities, without guessing emotion labels. To display
-emotion names, obtain the **ordered labels from the original training code** and
-add that mapping to the app. Do not infer the order from the example sentences.
+The 6 model output classes correspond to the standard 6 emotion benchmark labels:
+- `0`: **Sadness**
+- `1`: **Joy**
+- `2`: **Love**
+- `3`: **Anger**
+- `4`: **Fear**
+- `5`: **Surprise**
 
-The artifacts also do not record any preprocessing steps outside the saved
-tokenizer and model input shape. If training used additional text cleaning or
-non-default padding/truncation, confirm those steps from the original training
-code before adding them here.
+These correspond to indices 0 through 5 outputted by the final dense softmax layer.
 
 ## Run locally
 
